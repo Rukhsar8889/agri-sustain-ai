@@ -1,9 +1,7 @@
 # app.py
 import streamlit as st
-from openai import OpenAI
+from google import genai
 from PIL import Image
-import io
-import base64
 
 # Page Configuration for High-End Hackathon UI
 st.set_page_config(
@@ -44,16 +42,24 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 st.title("🌱 Agri-Sustain AI: Multi-Agent Autonomous Command Center")
-st.markdown("### Powered by xAI Grok API | Collaborative Multi-Agent Pipeline")
+st.markdown("### Powered by Google Gemini Free API | Collaborative Multi-Agent Pipeline")
 st.markdown("---")
 
-# Sidebar Configuration for Agent Orchestration
+# Initialize Gemini Client using Streamlit Secrets or Sidebar Input
+api_key = None
+try:
+    if "GEMINI_API_KEY" in st.secrets:
+        api_key = st.secrets["GEMINI_API_KEY"]
+except Exception:
+    pass
+
 st.sidebar.header("🛠️ Agent Command Center")
-api_key = st.sidebar.text_input("Enter your xAI Grok API Key", type="password")
+if not api_key:
+    api_key = st.sidebar.text_input("Enter your Google Gemini API Key", type="password")
 
 if not api_key:
-    st.sidebar.warning("⚠️ Please provide a valid Grok API key to initialize the multi-agent network.")
-    st.info("💡 **Judge Preview:** Enter your API key above to dispatch real-time cooperative AI agents for crop pathology, climate risk assessment, and fair-market negotiation.")
+    st.sidebar.warning("⚠️ Please provide a valid Gemini API key to initialize the multi-agent network.")
+    st.info("💡 **Judge Preview:** Enter your API key above (or configure it in Streamlit Secrets) to dispatch real-time cooperative AI agents for crop pathology, climate risk assessment, and fair-market negotiation.")
     
     st.markdown("### 🤖 Active Multi-Agent Architecture")
     col1, col2, col3 = st.columns(3)
@@ -61,18 +67,15 @@ if not api_key:
         st.markdown("#### 🔬 Dr. Agro (Vision Agent)")
         st.write("Specialized computer vision diagnostic agent analyzing cellular leaf structures and pathogen vectors.")
     with col2:
-        st.markdown("#### 🌤️ ClimaRisk (RAG & Weather Agent)")
+        st.markdown("#### 🌤️ ClimaRisk (Weather & Soil Agent)")
         st.write("Predictive meteorological agent forecasting humidity stress, pest lifecycle explosions, and irrigation timing.")
     with col3:
         st.markdown("#### ⚖️ TradeMaster (Negotiation Agent)")
         st.write("Economic strategy agent countering middleman markups and securing wholesale direct contracts.")
     st.stop()
 
-# Initialize OpenAI-compatible client for xAI endpoint
-client = OpenAI(
-    api_key=api_key,
-    base_url="https://api.x.ai/v1"
-)
+# Initialize official Google GenAI client
+client = genai.Client(api_key=api_key)
 
 # Main Multi-Agent Workflow Tabs
 tab1, tab2, tab3 = st.tabs([
@@ -83,7 +86,7 @@ tab1, tab2, tab3 = st.tabs([
 
 with tab1:
     st.header("Multi-Agent Cooperative Diagnostic Pipeline")
-    st.write("Trigger a simultaneous execution of **Dr. Agro (Vision)** and **ClimaRisk (Weather/Soil Intelligence)** on your crop sample.")
+    st.write("Trigger a simultaneous execution of **Dr. Agro (Vision)** and **ClimaRisk (Weather/Soil Intelligence)** on your crop sample using Gemini 2.5 Flash.")
     
     col_img, col_form = st.columns([1, 1])
     
@@ -109,53 +112,25 @@ with tab1:
                 status_text.text("🤖 Agent 1 [Dr. Agro]: Analyzing cellular damage and lesion patterns...")
                 progress_bar.progress(33)
                 
-                buffered = io.BytesIO()
-                image.save(buffered, format=image.format if image.format else "JPEG")
-                img_str = base64.b64encode(buffered.getvalue()).decode()
+                vision_prompt = f"You are Dr. Agro, an elite plant pathologist agent. Detail the exact disease name, confidence index, microscopic pathology, and immediate organic/chemical recovery actions for this {crop_category} image from region {region_name}."
                 
-                vision_response = client.chat.completions.create(
-                    model="grok-2-vision-latest",
-                    messages=[
-                        {
-                            "role": "system",
-                            "content": "You are Dr. Agro, an elite plant pathologist agent. Detail the exact disease name, confidence index, microscopic pathology, and immediate organic/chemical recovery actions."
-                        },
-                        {
-                            "role": "user",
-                            "content": [
-                                {"type": "text", "text": f"Analyze this {crop_category} image from region {region_name}."},
-                                {
-                                    "type": "image_url",
-                                    "image_url": {
-                                        "url": f"data:image/jpeg;base64,{img_str}"
-                                    }
-                                }
-                            ]
-                        }
-                    ],
-                    max_tokens=800
+                vision_response = client.models.generate_content(
+                    model='gemini-2.5-flash',
+                    contents=[image, vision_prompt]
                 )
-                vision_analysis = vision_response.choices[0].message.content
+                vision_analysis = vision_response.text
 
                 # Step 2: Climate & Soil Risk Agent
                 status_text.text("🤖 Agent 2 [ClimaRisk]: Correlating regional weather patterns and soil stress...")
                 progress_bar.progress(66)
                 
-                climate_response = client.chat.completions.create(
-                    model="grok-2-latest",
-                    messages=[
-                        {
-                            "role": "system",
-                            "content": "You are ClimaRisk, a meteorological and agricultural risk agent. Based on the crop and region, evaluate humidity, secondary pest multiplication risk, and prevention protocols."
-                        },
-                        {
-                            "role": "user",
-                            "content": f"The crop is {crop_category} in {region_name}. Pathology detected: {vision_analysis[:300]}... Provide the climate risk correlation and preventative timeline."
-                        }
-                    ],
-                    max_tokens=600
+                climate_prompt = f"You are ClimaRisk, a meteorological and agricultural risk agent. Based on the crop ({crop_category}) in region ({region_name}), evaluate humidity, secondary pest multiplication risk, and prevention protocols given this pathology finding: {vision_analysis[:300]}..."
+                
+                climate_response = client.models.generate_content(
+                    model='gemini-2.5-flash',
+                    contents=climate_prompt
                 )
-                climate_analysis = climate_response.choices[0].message.content
+                climate_analysis = climate_response.text
 
                 progress_bar.progress(100)
                 status_text.text("✅ Multi-Agent Orchestration Complete!")
@@ -185,33 +160,34 @@ with tab1:
 
 with tab2:
     st.header("Cooperative Agent War Room (Interactive Chat)")
-    st.write("Directly query the **TradeMaster Agent** or simulate multi-agent advisory sessions regarding supply chain logistics and fair pricing.")
+    st.write("Directly query the **TradeMaster Agent** regarding supply chain logistics, live commodity estimation, and fair pricing negotiation.")
 
-    if "agent_messages" not in st.session_state:
-        st.session_state.agent_messages = [
-            {"role": "system", "content": "You are TradeMaster, an expert agricultural economist and fair-market negotiation agent. Your goal is to protect smallholder farmers from exploitative intermediaries by providing live commodity pricing strategies, contract templates, and direct wholesale buyer channels."}
-        ]
+    if "gemini_chat_messages" not in st.session_state:
+        # Initialize chat with system persona using Gemini chat session
+        st.session_state.chat = client.chats.create(
+            model="gemini-2.5-flash",
+            config={
+                "system_instruction": "You are TradeMaster, an expert agricultural economist and fair-market negotiation agent. Your goal is to protect smallholder farmers from exploitative intermediaries by providing live commodity pricing strategies, contract templates, and direct wholesale buyer channels."
+            }
+        )
+        st.session_state.gemini_chat_messages = []
 
-    for message in st.session_state.agent_messages[1:]:
+    for message in st.session_state.gemini_chat_messages:
         with st.chat_message(message["role"]):
             st.markdown(message["content"])
 
     if prompt := st.chat_input("Consult TradeMaster (e.g., 'How do I negotiate a fair price for wheat wholesale this season?')..."):
-        st.session_state.agent_messages.append({"role": "user", "content": prompt})
+        st.session_state.gemini_chat_messages.append({"role": "user", "content": prompt})
         with st.chat_message("user"):
             st.markdown(prompt)
 
         with st.chat_message("assistant"):
             with st.spinner("TradeMaster Agent formulating strategy..."):
                 try:
-                    response = client.chat.completions.create(
-                        model="grok-2-latest",
-                        messages=st.session_state.agent_messages,
-                        temperature=0.7
-                    )
-                    reply = response.choices[0].message.content
+                    chat_response = st.session_state.chat.send_message(prompt)
+                    reply = chat_response.text
                     st.markdown(reply)
-                    st.session_state.agent_messages.append({"role": "assistant", "content": reply})
+                    st.session_state.gemini_chat_messages.append({"role": "assistant", "content": reply})
                 except Exception as e:
                     st.error(f"Agent communication error: {e}")
 
@@ -219,8 +195,8 @@ with tab3:
     st.header("Hackathon Pitch & Evaluation Matrix")
     st.markdown("""
     ### Why This Multi-Agent Architecture Wins
-    * **Advanced Innovation:** Moves beyond simple single-prompt wrappers by orchestrating collaborative agents (Vision + Meteorological Risk + Economic Negotiation).
+    * **Advanced Innovation:** Moves beyond simple single-prompt wrappers by orchestrating collaborative agents (Vision + Meteorological Risk + Economic Negotiation) powered by Gemini 2.5 Flash.
     * **Real-World Problem Solving:** Addresses three compounding crises for rural growers: rapid disease spread, unpredictable climate conditions, and predatory middleman pricing.
-    * **Seamless Integration:** Built natively on xAI's high-speed `grok-2-vision-latest` and `grok-2-latest` models, optimized for instant inference speeds.
+    * **Seamless Integration:** Built natively on Google's free-tier AI ecosystem for lightning-fast multimodal inference speeds.
     * **SDG Alignment:** Directly supports **SDG 1 (No Poverty)**, **SDG 2 (Zero Hunger)**, and **SDG 12 (Responsible Consumption)**.
     """)
