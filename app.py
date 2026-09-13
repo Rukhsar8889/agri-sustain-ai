@@ -20,6 +20,7 @@ st.markdown("""
         gap: 12px;
         background-color: #f1f5f9;
         padding: 8px;
+padding: 10px 18px;
         border-radius: 12px;
     }
     .stTabs [data-baseweb="tab"] {
@@ -27,6 +28,7 @@ st.markdown("""
         border-radius: 8px;
         padding: 10px 20px;
         font-weight: 600;
+padding: 15px 28px;
         color: #334155;
         border: 1px solid #e2e8f0;
         box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05);
@@ -35,6 +37,7 @@ st.markdown("""
         background-color: #16a34a !important;
         color: white !important;
         border-color: #16a34a !important;
+padding: 15px 28px;
     }
     .agent-card {
         background-color: #ffffff;
@@ -55,6 +58,12 @@ st.markdown("""
         margin-bottom: 25px;
         box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1);
     }
+.st-emotion-cache-1wacqe4 p{
+    padding: 15px 28px;
+    border-radius: 30px;
+}
+
+
     </style>
 """, unsafe_allow_html=True)
 
